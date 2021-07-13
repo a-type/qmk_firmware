@@ -9,7 +9,7 @@
 #endif
 
 #ifndef TRACKBALL_ORIENTATION
-#   define TRACKBALL_ORIENTATION 0
+#   define TRACKBALL_ORIENTATION 3
 #endif
 
 void trackball_init(void) {
@@ -62,8 +62,8 @@ trackball_state_t trackball_get_state(void) {
         .x = s[2] - s[3],
 #else
         // Pimoroni text is left
-        .y = s[2] - s[3],
-        .x = s[0] - s[1],
+        .y = s[3] - s[2],
+        .x = s[1] - s[0],
 #endif
         .button_down = s[4] & 0x80,
         .button_triggered = s[4] & 0x01,

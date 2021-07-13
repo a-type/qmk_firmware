@@ -18,10 +18,11 @@
 #include QMK_KEYBOARD_H
 #include "animation_frames.h"
 #include "pointing_device.h"
-#include "features/pimoroni_trackball.h"
 #include <stdio.h>
 #include "print.h"
 
+#define TRACKBALL_ORIENTATION 3
+#include "./features/pimoroni_trackball.h"
 
 enum layer_names {
   _BASE,
@@ -86,11 +87,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 };
 
-#ifdef TRACKBALL_ENABLE
-
 #include "timer.h"
 // #include "math.h"
-#include "quantum/quantum.h"
 
 static int16_t mouse_auto_layer_timer = 0;
 #define MOUSE_TIMEOUT 600
@@ -101,16 +99,15 @@ static int16_t mouse_auto_layer_timer = 0;
 #define SIGN(x) ((x > 0) - (x < 0))
 
 void keyboard_post_init_user(void) {
+    print("post_init_user\n");
     debug_enable=true;
-    debug_matrix=true;
-    debug_mouse=true;
     trackball_set_brightness(TRACKBALL_BRIGHTNESS);
-    print("trackball brightness set");
+    print("trackball brightness set\n");
 }
 
 void matrix_init_user() {
     trackball_init();
-    print("trackball init complete");
+    print("trackball init complete\n");
 }
 
 void suspend_power_down_user(void) {
@@ -145,7 +142,7 @@ void pointing_device_task() {
 
         uint8_t mods;
         if (state.x || state.y) {
-            trigger_tapping();
+            // trigger_tapping();
             mods = get_mods();
         }
 
@@ -206,8 +203,6 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     return state;
 }
 
-#endif
-
 bool encoder_update_user(uint8_t index, bool clockwise) {
     if (clockwise) {
         tap_code(KC_VOLU);
@@ -222,7 +217,7 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 
 oled_rotation_t oled_init_user(oled_rotation_t rotation) {
     return OLED_ROTATION_270;
-    print("oled init complete");
+    print("oled init complete\n");
 }
 
 uint32_t anim_timer         = 0;
@@ -300,6 +295,10 @@ void oled_task_user(void) {
 
 // Animate tap
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    #ifdef CONSOLE_ENABLE
+    uprintf("KL: kc: 0x%04X, col: %u, row: %u, pressed: %b, time: %u, interrupt: %b, count: %u\n", keycode, record->event.key.col, record->event.key.row, record->event.pressed, record->event.time, record->tap.interrupted, record->tap.count);
+    #endif
+
     #ifdef OLED_DRIVER_ENABLE
     // Check if non-mod
     if ((keycode >= KC_A && keycode <= KC_0) || (keycode >= KC_TAB && keycode <= KC_SLASH)) {
@@ -386,12 +385,10 @@ void matrix_scan_user(void) {
     }
   }
 
-  #ifdef TRACKBALL_ENABLE
     if (mouse_auto_layer_timer && timer_elapsed(mouse_auto_layer_timer) > MOUSE_TIMEOUT) {
         report_mouse_t rep = pointing_device_get_report();
         if (rep.buttons) { return; }
         layer_off(_MOUS);
         mouse_auto_layer_timer = 0;
     }
-  #endif
 }
