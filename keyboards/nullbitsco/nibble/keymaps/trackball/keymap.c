@@ -20,6 +20,7 @@
 #include "pointing_device.h"
 #include "features/pimoroni_trackball.h"
 #include <stdio.h>
+#include "print.h"
 
 
 enum layer_names {
@@ -100,11 +101,16 @@ static int16_t mouse_auto_layer_timer = 0;
 #define SIGN(x) ((x > 0) - (x < 0))
 
 void keyboard_post_init_user(void) {
+    debug_enable=true;
+    debug_matrix=true;
+    debug_mouse=true;
     trackball_set_brightness(TRACKBALL_BRIGHTNESS);
+    print("trackball brightness set");
 }
 
 void matrix_init_user() {
     trackball_init();
+    print("trackball init complete");
 }
 
 void suspend_power_down_user(void) {
@@ -165,6 +171,7 @@ void pointing_device_task() {
     }
 
     while (x_offset || y_offset || h_offset || v_offset) {
+        uprintf("x %f y %f h %f v %f", x_offset, y_offset, h_offset, v_offset);
         update_member(&mouse.x, &x_offset);
         update_member(&mouse.y, &y_offset);
         update_member(&mouse.v, &v_offset);
@@ -213,7 +220,10 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 #ifdef OLED_DRIVER_ENABLE
 #define IDLE_FRAME_DURATION 200 // Idle animation iteration rate in ms
 
-oled_rotation_t oled_init_user(oled_rotation_t rotation) { return OLED_ROTATION_270; }
+oled_rotation_t oled_init_user(oled_rotation_t rotation) {
+    return OLED_ROTATION_270;
+    print("oled init complete");
+}
 
 uint32_t anim_timer         = 0;
 uint32_t anim_sleep         = 0;
