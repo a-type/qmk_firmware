@@ -94,20 +94,17 @@ static int16_t mouse_auto_layer_timer = 0;
 #define MOUSE_TIMEOUT 600
 #define TRACKBALL_TIMEOUT 5
 
-#define TRACKBALL_BRIGHTNESS 32
+#define TRACKBALL_BRIGHTNESS 128
 
 #define SIGN(x) ((x > 0) - (x < 0))
 
 void keyboard_post_init_user(void) {
-    print("post_init_user\n");
     debug_enable=true;
     trackball_set_brightness(TRACKBALL_BRIGHTNESS);
-    print("trackball brightness set\n");
 }
 
 void matrix_init_user() {
     trackball_init();
-    print("trackball init complete\n");
 }
 
 void suspend_power_down_user(void) {
@@ -127,6 +124,8 @@ void update_member(int8_t* member, int16_t* offset) {//{{{
         *offset = 0;
     }
 }//}}}
+
+#define MOUSE_MOVE_SCALE 2
 
 static int16_t x_offset = 0;
 static int16_t y_offset = 0;
@@ -159,16 +158,16 @@ void pointing_device_task() {
                 h_offset += state.x;
                 v_offset += state.y;
             } else if ((state.x || state.y) && !state.button_down) {
-                uint8_t scale = 3;
-                if (mods & MOD_MASK_CTRL) scale = 2;
-                x_offset += state.x * state.x * SIGN(state.x) * scale;
-                y_offset += state.y * state.y * SIGN(state.y) * scale;
+                uint8_t scale = MOUSE_MOVE_SCALE;
+                // precision mode when ctrl is held
+                if (mods & MOD_MASK_CTRL) scale = scale - 1;
+                x_offset += state.x * state.x * state.x * /*SIGN(state.x) * */scale;
+                y_offset += state.y * state.y * state.y * /*SIGN(state.y) * */scale;
             }
         }
     }
 
     while (x_offset || y_offset || h_offset || v_offset) {
-        uprintf("x %f y %f h %f v %f", x_offset, y_offset, h_offset, v_offset);
         update_member(&mouse.x, &x_offset);
         update_member(&mouse.y, &y_offset);
         update_member(&mouse.v, &v_offset);
@@ -212,12 +211,10 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
     return true;
 }
 
-#ifdef OLED_DRIVER_ENABLE
 #define IDLE_FRAME_DURATION 200 // Idle animation iteration rate in ms
 
 oled_rotation_t oled_init_user(oled_rotation_t rotation) {
     return OLED_ROTATION_270;
-    print("oled init complete\n");
 }
 
 uint32_t anim_timer         = 0;
@@ -232,7 +229,6 @@ bool tap_anim_toggle = false;
 // Decompress and write a precompressed bitmap frame to the OLED.
 // Documentation and python compression script available at:
 // https://github.com/nullbitsco/squeez-o
-#ifdef USE_OLED_BITMAP_COMPRESSION
 static void oled_write_compressed_P(const char* input_block_map, const char* input_block_list) {
     uint16_t block_index = 0;
     for (uint16_t i=0; i<NUM_OLED_BYTES; i++) {
@@ -249,7 +245,6 @@ static void oled_write_compressed_P(const char* input_block_map, const char* inp
         }
     }
 }
-#endif
 
 static void render_anim(void) {
     // Idle animation
@@ -291,15 +286,9 @@ void oled_task_user(void) {
     // sprintf(wpm_str, ">%04d", get_current_wpm());
     // oled_write_ln(wpm_str, false);
 }
-#endif
 
 // Animate tap
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-    #ifdef CONSOLE_ENABLE
-    uprintf("KL: kc: 0x%04X, col: %u, row: %u, pressed: %b, time: %u, interrupt: %b, count: %u\n", keycode, record->event.key.col, record->event.key.row, record->event.pressed, record->event.time, record->tap.interrupted, record->tap.count);
-    #endif
-
-    #ifdef OLED_DRIVER_ENABLE
     // Check if non-mod
     if ((keycode >= KC_A && keycode <= KC_0) || (keycode >= KC_TAB && keycode <= KC_SLASH)) {
         if (record->event.pressed) {
@@ -312,7 +301,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             #endif
         }
     }
-    #endif
 
     switch(keycode) {
         case PROG:

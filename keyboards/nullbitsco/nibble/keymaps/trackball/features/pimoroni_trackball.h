@@ -39,12 +39,10 @@ typedef struct {
     int16_t y;
     bool button_down;
     bool button_triggered;
-#ifdef TRACKBALL_WITH_MATH
     double vector_length;
     double angle_rad;
     int8_t raw_x;
     int8_t raw_y;
-#endif
 } trackball_state_t;
 
 void trackball_init(void);
