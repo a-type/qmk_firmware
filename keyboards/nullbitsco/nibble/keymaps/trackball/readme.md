@@ -8,7 +8,33 @@ Features of this firmware:
 
 1. Trackball support!
 2. Bongo cat!
-3. VIA!
+3. Mac / Windows compat modes!
+
+## Firmware Details
+
+I'm kind of opinionated about stuff, so you'll likely want to modify things. I'll try to clean the code up so that's not so daunting, but for now here's the gist of my decisions. As I clean up hopefully I can extract a lot of these choices to defined flags.
+
+### Trackball behavior
+
+By default the trackball scrolls. I find it more helpful than using it as a pointer. Scroll direction is "classic" (i.e. not "inverted" or "natural") because that's how I do things.
+Activate the FN layer to switch to pointing (see below).ß
+
+### FN layer
+
+Bottom left corner is FN, which switches to the function layer while held.
+Function layer has the F1-12 keys on the number row.
+WASD moves quickly through text (Up = Page Up, Down = Page Down, Left = Prev Word, Right = Next Word).
+Esc becomes `/~`.
+
+### Mac Mode
+
+Press the encoder to toggle between Mac and Windows modes. Right now this just swaps Alt and GUI keys. I plan on adding some specific key combination overrides to make working on Windows easier for someone adjusted to Mac.
+
+### Encoder
+
+Defaults to moving forward and backward one word at a time (⌘+L/R on Mac, Ctrl+L/R on Win). Hold FN (bottom left corner) to adjust volume instead.
+
+## Build Guide
 
 The setup is actually quite simple - no different from wiring the OLED. Both the OLED and the trackball communicate with the keyboard using the same i2c bus. That means you actually wire them into the same exact through holes on the PCB. Easy!
 

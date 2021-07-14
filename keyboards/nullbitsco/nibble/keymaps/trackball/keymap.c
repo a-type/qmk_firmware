@@ -40,6 +40,8 @@ enum custom_keycodes {
   KC_PRVWD,
   KC_NXTWD,
   KC_MAC,
+  KC_MGUI,
+  KC_MALT,
   _NUM_CUST_KCS,
 };
 
@@ -49,11 +51,11 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     KC_F13,   KC_TAB,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_LBRC, KC_RBRC, KC_BSLS, KC_HOME,
     KC_F14,   KC_CAPS, KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,          KC_ENT,  KC_END,
     MO(_OPTS),KC_LSFT, KC_NUBS, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSFT, KC_UP,   KC_PGDN,
-    MO(_FUNC),KC_LCTL, KC_LGUI, KC_LALT,                            KC_SPC,                  KC_SPC, KC_RALT, MO(_FUNC), KC_LEFT, KC_DOWN, KC_RGHT
+    MO(_FUNC),KC_LCTL, KC_MGUI, KC_MALT,                            KC_SPC,                  KC_SPC, KC_RALT, MO(_FUNC), KC_LEFT, KC_DOWN, KC_RGHT
   ),
 
   [_FUNC] = LAYOUT_all(
-              RESET,   KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,  KC_F12,  _______, KC_MUTE,
+              KC_GRV,   KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,  KC_F12,  _______, KC_MUTE,
     RGB_TOG,  _______, _______, KC_PGUP, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, KC_VOLU,
     _______,  _______,KC_PRVWD, KC_PGDN,KC_NXTWD, _______, _______, _______, _______, _______, _______, _______, _______,          _______, KC_VOLD,
     _______,  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
@@ -61,7 +63,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   ),
 
   [_OPTS] = LAYOUT_all(
-              _______, LAG_SWP, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
+              _______, KC_MAC,  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
     _______,  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
     _______,  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,          _______, _______,
     _______,  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
@@ -78,6 +80,32 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 };
 
+// user storage
+typedef union {
+    uint32_t raw;
+    struct {
+        bool mac_mode :1;
+    };
+} user_config_t;
+user_config_t user_config;
+
+void update_mac_led(void) {
+    if (user_config.mac_mode) {
+        set_big_LED_rgb(255, 255, 0);
+    } else {
+        // this shows up as blue because of the i2c interference with the LED
+        set_big_LED_rgb(0, 0, 0);
+    }
+}
+
+void eeconfig_init_user(void) {
+    user_config.raw = 0;
+    user_config.mac_mode = false;
+    eeconfig_update_user(user_config.raw);
+    update_mac_led();
+}
+
+// trackball
 #include "timer.h"
 
 static int16_t mouse_auto_layer_timer = 0;
@@ -88,16 +116,9 @@ static int16_t mouse_auto_layer_timer = 0;
 
 #define SIGN(x) ((x > 0) - (x < 0))
 
-void update_mac_led(void) {
-    if (keymap_config.swap_lalt_lgui) {
-        set_big_LED_rgb(128, 128, 128);
-    } else {
-        set_big_LED_rgb(0, 0, 0);
-    }
-}
-
 void keyboard_post_init_user(void) {
     trackball_set_brightness(TRACKBALL_BRIGHTNESS);
+    user_config.raw = eeconfig_read_user();
     update_mac_led();
 }
 
@@ -219,9 +240,25 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
         }
     } else {
         if (clockwise) {
-            tap_code16(KC_NXTWD);
+            if (user_config.mac_mode) {
+                register_mods(MOD_LALT);
+                tap_code(KC_RIGHT);
+                unregister_mods(MOD_LALT);
+            } else{
+                register_mods(MOD_RCTL);
+                tap_code(KC_RIGHT);
+                unregister_mods(MOD_RCTL);
+            }
         } else {
-            tap_code16(KC_PRVWD);
+            if (user_config.mac_mode) {
+                register_mods(MOD_LALT);
+                tap_code(KC_LEFT);
+                unregister_mods(MOD_LALT);
+            } else{
+                register_mods(MOD_RCTL);
+                tap_code(KC_LEFT);
+                unregister_mods(MOD_RCTL);
+            }
         }
     }
     return true;
@@ -299,7 +336,7 @@ void oled_task_user(void) {
     render_anim();
     oled_set_cursor(0, 14);
     // sprintf(wpm_str, ">%04d", get_current_wpm());
-    // oled_write_ln(keymap_config.swap_lalt_lgui ? "mac" : "win", false);
+    oled_write_ln(user_config.mac_mode ? "mac" : "win", false);
 }
 
 // Animate tap
@@ -320,7 +357,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch(keycode) {
         case KC_PRVWD:
             if (record->event.pressed) {
-                if (keymap_config.swap_lalt_lgui) {
+                if (user_config.mac_mode) {
                     register_mods(mod_config(MOD_LALT));
                     register_code(KC_LEFT);
                 } else {
@@ -328,7 +365,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     register_code(KC_LEFT);
                 }
             } else {
-                if (keymap_config.swap_lalt_lgui) {
+                if (user_config.mac_mode) {
                     unregister_mods(mod_config(MOD_LALT));
                     unregister_code(KC_LEFT);
                 } else {
@@ -339,7 +376,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             break;
         case KC_NXTWD:
              if (record->event.pressed) {
-                if (keymap_config.swap_lalt_lgui) {
+                if (user_config.mac_mode) {
                     register_mods(mod_config(MOD_LALT));
                     register_code(KC_RIGHT);
                 } else {
@@ -347,7 +384,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     register_code(KC_RIGHT);
                 }
             } else {
-                if (keymap_config.swap_lalt_lgui) {
+                if (user_config.mac_mode) {
                     unregister_mods(mod_config(MOD_LALT));
                     unregister_code(KC_RIGHT);
                 } else {
@@ -357,9 +394,45 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             }
             break;
 
-        case LAG_SWP:
-            update_mac_led();
-            break;
+        case KC_MAC:
+            if (record->event.pressed) {
+                user_config.mac_mode ^= 1;
+                eeconfig_update_user(user_config.raw);
+                update_mac_led();
+            }
+            return false;
+
+        case KC_MGUI:
+            if (record->event.pressed) {
+                if (user_config.mac_mode) {
+                    register_code(KC_LALT);
+                } else {
+                    register_code(KC_LGUI);
+                }
+            } else {
+                if (user_config.mac_mode) {
+                    unregister_code(KC_LALT);
+                } else {
+                    unregister_code(KC_LGUI);
+                }
+            }
+            return false;
+
+        case KC_MALT:
+            if (record->event.pressed) {
+                if (user_config.mac_mode) {
+                    register_code(KC_LGUI);
+                } else {
+                    register_code(KC_LALT);
+                }
+            } else {
+                if (user_config.mac_mode) {
+                    unregister_code(KC_LGUI);
+                } else {
+                    unregister_code(KC_LALT);
+                }
+            }
+            return false;
 
         default:
         break;
