@@ -9,6 +9,12 @@
 
 This is a keyboard firmware based on the [tmk\_keyboard firmware](https://github.com/tmk/tmk_keyboard) with some useful features for Atmel AVR and ARM controllers, and more specifically, the [OLKB product line](https://olkb.com), the [ErgoDox EZ](https://ergodox-ez.com) keyboard, and the [Clueboard product line](https://clueboard.co).
 
+## Nibble Trackball Mod
+
+This fork is made to power my trackball mod to the Nibble keyboard. I copied a lot of code from @sevanteri, who did excellent work making the trackball more or less usable as a pointing device!
+
+See the [build guide](./keyboards/nullbitsco/nibble/trackball/readme.md) for more info on how to build your own!
+
 ## Documentation
 
 * [See the official documentation on docs.qmk.fm](https://docs.qmk.fm)
