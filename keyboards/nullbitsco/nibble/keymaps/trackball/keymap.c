@@ -63,11 +63,11 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   ),
 
   [_OPTS] = LAYOUT_all(
-              _______, KC_MAC,  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
-    _______,  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
-    _______,  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,          _______, _______,
-    _______,  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
-    _______,  _______, _______, _______,                            _______,                   _______, _______, _______, _______, _______, _______
+              _______, KC_MAC,  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, RGB_SAI,
+    _______,  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, RGB_SAD,
+    _______,  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,          _______, RGB_HUI,
+    _______,  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, RGB_MODE_FORWARD, RGB_HUD,
+    _______,  _______, _______, _______,                            _______,                   _______, _______, _______, RGB_VAD, RGB_MODE_REVERSE, RGB_VAI
   ),
 
   [_MOUS] = LAYOUT_all(
@@ -106,8 +106,6 @@ void eeconfig_init_user(void) {
 }
 
 // trackball
-#include "timer.h"
-
 static int16_t mouse_auto_layer_timer = 0;
 #define MOUSE_TIMEOUT 600
 #define TRACKBALL_TIMEOUT 5
@@ -122,9 +120,10 @@ void keyboard_post_init_user(void) {
     update_mac_led();
 }
 
-void matrix_init_user() {
-    trackball_init();
-}
+// ! this is already done by the oled - doing it twice breaks the oled on reset
+// void matrix_init_user() {
+//     trackball_init();
+// }
 
 void suspend_power_down_user(void) {
     trackball_set_brightness(0);
@@ -281,6 +280,7 @@ bool tap_anim_toggle = false;
 // Decompress and write a precompressed bitmap frame to the OLED.
 // Documentation and python compression script available at:
 // https://github.com/nullbitsco/squeez-o
+#ifdef USE_OLED_BITMAP_COMPRESSION
 static void oled_write_compressed_P(const char* input_block_map, const char* input_block_list) {
     uint16_t block_index = 0;
     for (uint16_t i=0; i<NUM_OLED_BYTES; i++) {
@@ -297,6 +297,7 @@ static void oled_write_compressed_P(const char* input_block_map, const char* inp
         }
     }
 }
+#endif
 
 static void render_anim(void) {
     // Idle animation
@@ -439,13 +440,4 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 
     return true;
-}
-
-void matrix_scan_user(void) {
-    if (mouse_auto_layer_timer && timer_elapsed(mouse_auto_layer_timer) > MOUSE_TIMEOUT) {
-        report_mouse_t rep = pointing_device_get_report();
-        if (rep.buttons) { return; }
-        layer_off(_MOUS);
-        mouse_auto_layer_timer = 0;
-    }
 }
