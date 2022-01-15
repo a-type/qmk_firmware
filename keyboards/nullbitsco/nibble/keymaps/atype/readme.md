@@ -1,0 +1,3 @@
+# a-type
+
+Just my personal keymap...

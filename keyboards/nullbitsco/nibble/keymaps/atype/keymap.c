@@ -17,12 +17,12 @@
  */
 #include QMK_KEYBOARD_H
 #include "animation_frames.h"
-#include "pointing_device.h"
+// #include "pointing_device.h"
 #include <stdio.h>
-#include "big_led.h"
+// #include "big_led.h"
 
-#define TRACKBALL_ORIENTATION 3
-#include "./features/pimoroni_trackball.h"
+// #define TRACKBALL_ORIENTATION 3
+// #include "./features/pimoroni_trackball.h"
 
 enum layer_names {
   _BASE,
@@ -42,6 +42,9 @@ enum custom_keycodes {
   KC_MAC,
   KC_MGUI,
   KC_MALT,
+  KC_DVTL,
+  // VS Code pane
+  KC_VCPN,
   _NUM_CUST_KCS,
 };
 
@@ -49,7 +52,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [_BASE] = LAYOUT_all(
               KC_GESC, KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_MINS, KC_EQL,  KC_BSPC, KC_DEL,
     KC_MAC,   KC_TAB,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_LBRC, KC_RBRC, KC_BSLS, KC_HOME,
-    KC_F14,   KC_GRV, KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,          KC_ENT,  KC_END,
+    KC_F12,   KC_GRV, KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,          KC_ENT,  KC_END,
     MO(_OPTS),KC_LSFT, KC_NUBS, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSFT, KC_UP,   KC_PGDN,
     MO(_FUNC),KC_LCTL, KC_MGUI, KC_MALT,                            KC_SPC,                  KC_SPC, KC_RALT, MO(_FUNC), KC_LEFT, KC_DOWN, KC_RGHT
   ),
@@ -57,9 +60,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [_FUNC] = LAYOUT_all(
               KC_GRV,   KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,  KC_F12,  _______, KC_MUTE,
     RGB_TOG,  _______, _______, KC_PGUP, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, KC_VOLU,
-    _______,  _______,KC_PRVWD, KC_PGDN,KC_NXTWD, _______, _______, _______, _______, _______, _______, _______, _______,          _______, KC_VOLD,
+    KC_VCPN,  _______,KC_PRVWD, KC_PGDN,KC_NXTWD, _______, _______, _______, _______, _______, _______, _______, _______,          _______, KC_VOLD,
     _______,  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
-    _______,  _______, _______, _______,                            _______,                   _______, _______, _______, KC_MPRV, KC_MPLY, KC_MNXT
+    _______,  _______, KC_LGUI, KC_LALT,                            _______,                   _______, _______, _______, KC_MPRV, KC_MPLY, KC_MNXT
   ),
 
   [_OPTS] = LAYOUT_all(
@@ -89,144 +92,20 @@ typedef union {
 } user_config_t;
 user_config_t user_config;
 
-void update_mac_led(void) {
-    if (user_config.mac_mode) {
-        set_big_LED_rgb(255, 255, 255);
-    } else {
-        // this shows up as blue because of the i2c interference with the LED
-        set_big_LED_rgb(0, 0, 0);
-    }
-}
-
 void eeconfig_init_user(void) {
     user_config.raw = 0;
     user_config.mac_mode = false;
     eeconfig_update_user(user_config.raw);
-    update_mac_led();
 }
-
-// trackball
-static int16_t mouse_auto_layer_timer = 0;
-#define MOUSE_TIMEOUT 600
-#define TRACKBALL_TIMEOUT 5
-
-#define TRACKBALL_BRIGHTNESS 128
 
 #define SIGN(x) ((x > 0) - (x < 0))
 
 void keyboard_post_init_user(void) {
-    trackball_set_brightness(TRACKBALL_BRIGHTNESS);
+    // trackball_set_brightness(TRACKBALL_BRIGHTNESS);
     user_config.raw = eeconfig_read_user();
-    update_mac_led();
+    // update_mac_led();
 }
 
-// ! this is already done by the oled - doing it twice breaks the oled on reset
-// void matrix_init_user() {
-//     trackball_init();
-// }
-
-void suspend_power_down_user(void) {
-    trackball_set_brightness(0);
-    // trackball_sleep();
-}
-
-void update_member(int8_t* member, int16_t* offset) {//{{{
-    if (*offset > 127) {
-        *member = 127;
-        *offset -= 127;
-    } else if (*offset < -127) {
-        *member = -127;
-        *offset += 127;
-    } else {
-        *member = *offset;
-        *offset = 0;
-    }
-}//}}}
-
-#define MOUSE_MOVE_SCALE 2
-
-static int16_t x_offset = 0;
-static int16_t y_offset = 0;
-static int16_t v_offset = 0;
-static int16_t h_offset = 0;
-static int16_t tb_timer = 0;
-void pointing_device_task() {
-    report_mouse_t mouse = pointing_device_get_report();
-
-    if (trackball_get_interrupt() && (!tb_timer || timer_elapsed(tb_timer) > TRACKBALL_TIMEOUT)) {
-        tb_timer = timer_read() | 1;
-        trackball_state_t state = trackball_get_state();
-
-        uint8_t mods;
-        if (state.x || state.y) {
-            // trigger_tapping();
-            mods = get_mods();
-        }
-
-        if (state.button_triggered) {
-            if (state.button_down) {
-                mouse.buttons |= MOUSE_BTN1;
-            } else {
-                mouse.buttons &= ~MOUSE_BTN1;
-            }
-            pointing_device_set_report(mouse);
-            pointing_device_send();
-        } else {
-            #ifdef TRACKBALL_DEFAULT_POINTER
-            bool is_scroll = layer_state_is(_FUNC);
-            #else
-            bool is_scroll = !layer_state_is(_FUNC);
-            #endif
-            if (is_scroll) {
-                h_offset += state.x;
-                v_offset += -state.y;
-            } else if ((state.x || state.y) && !state.button_down) {
-                uint8_t scale = MOUSE_MOVE_SCALE;
-                // precision mode when ctrl is held
-                if (mods & MOD_MASK_CTRL) scale = scale - 1;
-                x_offset += state.x * state.x * state.x * /*SIGN(state.x) * */scale;
-                y_offset += state.y * state.y * state.y * /*SIGN(state.y) * */scale;
-            }
-        }
-    }
-
-    while (x_offset || y_offset || h_offset || v_offset) {
-        update_member(&mouse.x, &x_offset);
-        update_member(&mouse.y, &y_offset);
-        update_member(&mouse.v, &v_offset);
-        update_member(&mouse.h, &h_offset);
-
-        pointing_device_set_report(mouse);
-        pointing_device_send();
-    }
-}
-
-bool process_record_keymap(uint16_t keycode, keyrecord_t *record) {
-    if ((keycode < KC_BTN1 || keycode > KC_BTN5) && layer_state_is(_MOUS) && record->event.pressed) {
-        layer_off(_MOUS);
-        mouse_auto_layer_timer = 0;
-    }
-    return true;
-}
-
-layer_state_t layer_state_set_user(layer_state_t state) {
-    uint8_t layer = get_highest_layer(state);
-    switch(layer) {
-        case _FUNC:
-            trackball_set_rgbw(0, TRACKBALL_BRIGHTNESS, 0, 0);
-            break;
-        case _OPTS:
-            trackball_set_rgbw(0, TRACKBALL_BRIGHTNESS, TRACKBALL_BRIGHTNESS, 0);
-            break;
-        case _MOUS:
-            trackball_set_rgbw(TRACKBALL_BRIGHTNESS, TRACKBALL_BRIGHTNESS, 0, 0);
-            break;
-        default:
-            trackball_set_rgbw(0, 0, 0, TRACKBALL_BRIGHTNESS);
-            break;
-    }
-    return state;
-}
 
 bool encoder_update_user(uint8_t index, bool clockwise) {
     // rotary is next/prev word by default,
@@ -417,11 +296,41 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             }
             break;
 
+        // devtools shortcut
+        case KC_DVTL:
+            if (record->event.pressed) {
+                if (user_config.mac_mode) {
+                    register_mods(mod_config(MOD_LALT | MOD_LGUI));
+                    register_code(KC_J);
+                } else {
+                    register_mods(mod_config(MOD_LCTL | MOD_LSFT));
+                    register_code(KC_J);
+                }
+            } else {
+                if (user_config.mac_mode) {
+                    unregister_mods(mod_config(MOD_LALT | MOD_LGUI));
+                    unregister_code(KC_J);
+                } else {
+                    unregister_mods(mod_config(MOD_LCTL | MOD_LSFT));
+                    unregister_code(KC_J);
+                }
+            }
+            return false;
+
+        case KC_VCPN:
+            if (record->event.pressed) {
+                register_mods(mod_config(MOD_LCTL | MOD_LSFT));
+                register_code(KC_GRV);
+            } else {
+                unregister_mods(mod_config(MOD_LCTL | MOD_LSFT));
+                unregister_code(KC_GRV);
+            }
+            return false;
+
         case KC_MAC:
             if (record->event.pressed) {
                 user_config.mac_mode ^= 1;
                 eeconfig_update_user(user_config.raw);
-                update_mac_led();
             }
             return false;
 
@@ -446,31 +355,66 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 if (user_config.mac_mode) {
                     register_code(KC_LGUI);
                 } else {
-                    register_code(KC_RCTRL);
+                    register_code(KC_RCTL);
                 }
             } else {
                 if (user_config.mac_mode) {
                     unregister_code(KC_LGUI);
                 } else {
-                    unregister_code(KC_RCTRL);
+                    unregister_code(KC_RCTL);
                 }
             }
             return false;
 
+        // Windows mode: rebind RCtrl+Tab to Alt+Tab
         case KC_TAB:
             if (user_config.mac_mode) {
                 break;
             }
             // detect RCtrl+Tab on Windows; rebind to Alt+Tab
             if (record->event.pressed) {
-                if (mod_state & MOD_BIT(KC_RCTRL)) {
-                    del_mods(KC_RCTRL);
+                if ((mod_state & MOD_BIT(KC_RCTL)) == MOD_BIT(KC_RCTL)) {
+                    del_mods(KC_RCTL);
                     add_mods(MOD_LALT);
                     register_code(KC_TAB);
                     set_mods(mod_state);
                     return false;
                 }
             }
+
+        // Windows mode: rebind RCtrl+Arrow to Alt+Arrow
+        case KC_LEFT:
+        case KC_RIGHT:
+        case KC_UP:
+        case KC_DOWN:
+            if (user_config.mac_mode) {
+                break;
+            }
+            if (record->event.pressed) {
+                if ((mod_state & MOD_BIT(KC_RCTL)) == MOD_BIT(KC_RCTL)) {
+                    unregister_mods(KC_RCTL);
+                    register_mods(MOD_LALT);
+                    register_code(keycode);
+                    set_mods(mod_state);
+                    return false;
+                }
+            }
+
+        // Windows mode: rebind RCtrl+F4 to Alt+F4
+        case KC_F4:
+            if (user_config.mac_mode) {
+                break;
+            }
+            if (record->event.pressed) {
+                if ((mod_state & MOD_BIT(KC_RCTL)) == MOD_BIT(KC_RCTL)) {
+                    unregister_mods(KC_RCTL);
+                    register_mods(MOD_LALT);
+                    register_code(keycode);
+                    set_mods(mod_state);
+                    return false;
+                }
+            }
+
         default:
         break;
     }
