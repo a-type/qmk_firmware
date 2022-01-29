@@ -49,4 +49,5 @@ enum remote_macros {
 void
  matrix_init_remote_kb(void),
  process_record_remote_kb(uint16_t keycode, keyrecord_t *record),
- matrix_scan_remote_kb(void);
+ matrix_scan_remote_kb(void),
+ tap_remote_key(uint16_t keycode);

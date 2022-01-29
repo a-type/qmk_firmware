@@ -17,7 +17,7 @@
 /*
 Remote keyboard is an experimental feature that allows for connecting another
 keyboard, macropad, numpad, or accessory without requiring an additional USB connection.
-The "remote keyboard" forwards its keystrokes using UART serial over TRRS. Dynamic VUSB 
+The "remote keyboard" forwards its keystrokes using UART serial over TRRS. Dynamic VUSB
 detect allows the keyboard automatically switch to host or remote mode depending on
 which is connected to the USB port.
 
@@ -173,4 +173,18 @@ void matrix_scan_remote_kb(void) {
     handle_remote_incoming();
   }
   #endif
+}
+
+void tap_remote_key(uint16_t keycode) {
+    # if defined (KEYBOARD_HOST)
+    // do nothing
+    # elif defined (KEYBOARD_REMOTE)
+    send_msg(keycode, true);
+    send_msg(keycode, false);
+    # else //auto check with VBUS
+    if (!is_host) {
+        send_msg(keycode, true);
+        send_msg(keycode, false);
+    }
+    #endif
 }
