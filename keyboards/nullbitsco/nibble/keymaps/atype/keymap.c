@@ -212,11 +212,12 @@ static void render_anim(void) {
     }
 }
 
-void oled_task_user(void) {
+bool oled_task_user(void) {
     render_anim();
     oled_set_cursor(0, 14);
     // sprintf(wpm_str, ">%04d", get_current_wpm());
     oled_write_ln(user_config.mac_mode ? "mac" : "win", false);
+    return true;
 }
 
 uint8_t mod_state;
@@ -241,6 +242,9 @@ bool win_mac_mode_key(uint16_t swap_key, uint16_t input_key, keyrecord_t *record
 
 // Animate tap
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    // Send keystrokes to host keyboard, if connected (see readme)
+    process_record_remote_kb(keycode, record);
+
     // Check if non-mod
     if ((keycode >= KC_A && keycode <= KC_0) || (keycode >= KC_TAB && keycode <= KC_SLASH)) {
         if (record->event.pressed) {
@@ -420,4 +424,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 
     return true;
+}
+
+void matrix_init_user(void) {
+  // Initialize remote keyboard, if connected (see readme)
+  matrix_init_remote_kb();
+}
+
+void matrix_scan_user(void) {
+  // Scan and parse keystrokes from remote keyboard, if connected (see readme)
+  matrix_scan_remote_kb();
 }
