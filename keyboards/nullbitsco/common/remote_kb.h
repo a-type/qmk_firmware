@@ -20,14 +20,26 @@
 #define SERIAL_UART_BAUD 153600 //low error rate for 32u4 @ 16MHz
 
 #define UART_PREAMBLE 0x69
-#define UART_MSG_LEN  5
+#define UART_MSG_LEN  7
 #define UART_NULL     0
 
+#define IDX_MSG_FLAG 1
+
+// key message indexes
 #define IDX_PREAMBLE  0
-#define IDX_KCLSB     1
-#define IDX_KCMSB     2
-#define IDX_PRESSED   3
-#define IDX_CHECKSUM  4
+#define IDX_KCLSB     2
+#define IDX_KCMSB     3
+#define IDX_PRESSED   4
+#define IDX_EMPTY     5
+#define IDX_CHECKSUM  6
+
+#define KC_FLAG     1
+
+// led message indexes
+#define IDX_RGB 2
+#define IDX_CHECKSUM 6
+
+#define RGB_FLAG 2
 
 #define IS_HID_KC(x) ((x > 0) && (x < 0xFF))
 #define IS_RM_KC(x) ((x >= RM_BASE) && (x <= 0xFFFF))
@@ -50,4 +62,5 @@ void
  matrix_init_remote_kb(void),
  process_record_remote_kb(uint16_t keycode, keyrecord_t *record),
  matrix_scan_remote_kb(void),
- tap_remote_key(uint16_t keycode);
+ tap_remote_key(uint16_t keycode),
+ sync_leds(void);

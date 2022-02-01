@@ -15,10 +15,13 @@
  *
  * Original: j-inc's kyria keymap
  */
+#define KEYBOARD_HOST true
+
 #include QMK_KEYBOARD_H
 #include "animation_frames.h"
 // #include "pointing_device.h"
 #include <stdio.h>
+#include "print.h"
 // #include "big_led.h"
 
 // #define TRACKBALL_ORIENTATION 3
@@ -101,9 +104,11 @@ void eeconfig_init_user(void) {
 #define SIGN(x) ((x > 0) - (x < 0))
 
 void keyboard_post_init_user(void) {
-    // trackball_set_brightness(TRACKBALL_BRIGHTNESS);
+    debug_enable=true;
+    debug_matrix=true;
+    print("keyboard init!\n");
     user_config.raw = eeconfig_read_user();
-    // update_mac_led();
+    sync_leds();
 }
 
 
@@ -244,6 +249,9 @@ bool win_mac_mode_key(uint16_t swap_key, uint16_t input_key, keyrecord_t *record
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     // Send keystrokes to host keyboard, if connected (see readme)
     process_record_remote_kb(keycode, record);
+
+    print("key press\n");
+    sync_leds();
 
     // Check if non-mod
     if ((keycode >= KC_A && keycode <= KC_0) || (keycode >= KC_TAB && keycode <= KC_SLASH)) {
