@@ -43,8 +43,6 @@ enum custom_keycodes {
   KC_PRVWD,
   KC_NXTWD,
   KC_MAC,
-  KC_MGUI,
-  KC_MALT,
   KC_DVTL,
   // VS Code pane
   KC_VCPN,
@@ -57,7 +55,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     KC_MAC,   KC_TAB,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_LBRC, KC_RBRC, KC_BSLS, KC_HOME,
     KC_F12,   KC_GRV, KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,          KC_ENT,  KC_END,
     MO(_OPTS),KC_LSFT, KC_NUBS, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSFT, KC_UP,   KC_PGDN,
-    MO(_FUNC),KC_LCTL, KC_MGUI, KC_MALT,                            KC_SPC,                  KC_SPC, KC_RALT, MO(_FUNC), KC_LEFT, KC_DOWN, KC_RGHT
+    MO(_FUNC),KC_LCTL, KC_GUI, KC_LALT,                            KC_SPC,                  KC_SPC, KC_RALT, MO(_FUNC), KC_LEFT, KC_DOWN, KC_RGHT
   ),
 
   [_FUNC] = LAYOUT_all(
@@ -104,8 +102,6 @@ void eeconfig_init_user(void) {
 #define SIGN(x) ((x > 0) - (x < 0))
 
 void keyboard_post_init_user(void) {
-    debug_enable=true;
-    debug_matrix=true;
     print("keyboard init!\n");
     user_config.raw = eeconfig_read_user();
     sync_leds();
@@ -123,25 +119,13 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
         }
     } else {
         if (clockwise) {
-            if (user_config.mac_mode) {
-                register_mods(MOD_LALT);
-                tap_code(KC_RIGHT);
-                unregister_mods(MOD_LALT);
-            } else{
-                register_mods(MOD_RCTL);
-                tap_code(KC_RIGHT);
-                unregister_mods(MOD_RCTL);
-            }
+            register_mods(MOD_RCTL);
+            tap_code(KC_RIGHT);
+            unregister_mods(MOD_RCTL);
         } else {
-            if (user_config.mac_mode) {
-                register_mods(MOD_LALT);
-                tap_code(KC_LEFT);
-                unregister_mods(MOD_LALT);
-            } else{
-                register_mods(MOD_RCTL);
-                tap_code(KC_LEFT);
-                unregister_mods(MOD_RCTL);
-            }
+            register_mods(MOD_RCTL);
+            tap_code(KC_LEFT);
+            unregister_mods(MOD_RCTL);
         }
     }
     return true;
@@ -227,24 +211,6 @@ bool oled_task_user(void) {
 
 uint8_t mod_state;
 
-bool win_mac_mode_key(uint16_t swap_key, uint16_t input_key, keyrecord_t *record) {
-    if (swap_key != input_key) {
-        return true;
-    }
-
-    if (record->event.pressed) {
-        if (!user_config.mac_mode && mod_state & MOD_BIT(KC_LALT)) {
-            del_mods(KC_LALT);
-            add_mods(MOD_LCTL);
-            register_code(swap_key);
-            set_mods(mod_state);
-            return false;
-        }
-    }
-
-    return true;
-}
-
 // Animate tap
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     // Send keystrokes to host keyboard, if connected (see readme)
@@ -271,61 +237,31 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch(keycode) {
         case KC_PRVWD:
             if (record->event.pressed) {
-                if (user_config.mac_mode) {
-                    register_mods(mod_config(MOD_LALT));
-                    register_code(KC_LEFT);
-                } else {
-                    register_mods(mod_config(MOD_LCTL));
-                    register_code(KC_LEFT);
-                }
+                register_mods(mod_config(MOD_LCTL));
+                register_code(KC_LEFT);
             } else {
-                if (user_config.mac_mode) {
-                    unregister_mods(mod_config(MOD_LALT));
-                    unregister_code(KC_LEFT);
-                } else {
-                    unregister_mods(mod_config(MOD_LCTL));
-                    unregister_code(KC_LEFT);
-                }
+                unregister_mods(mod_config(MOD_LCTL));
+                unregister_code(KC_LEFT);
             }
             break;
         case KC_NXTWD:
              if (record->event.pressed) {
-                if (user_config.mac_mode) {
-                    register_mods(mod_config(MOD_LALT));
-                    register_code(KC_RIGHT);
-                } else {
-                    register_mods(mod_config(MOD_LCTL));
-                    register_code(KC_RIGHT);
-                }
+                register_mods(mod_config(MOD_LCTL));
+                register_code(KC_RIGHT);
             } else {
-                if (user_config.mac_mode) {
-                    unregister_mods(mod_config(MOD_LALT));
-                    unregister_code(KC_RIGHT);
-                } else {
-                    unregister_mods(mod_config(MOD_LCTL));
-                    unregister_code(KC_RIGHT);
-                }
+                unregister_mods(mod_config(MOD_LCTL));
+                unregister_code(KC_RIGHT);
             }
             break;
 
         // devtools shortcut
         case KC_DVTL:
             if (record->event.pressed) {
-                if (user_config.mac_mode) {
-                    register_mods(mod_config(MOD_LALT | MOD_LGUI));
-                    register_code(KC_J);
-                } else {
-                    register_mods(mod_config(MOD_LCTL | MOD_LSFT));
-                    register_code(KC_J);
-                }
+                register_mods(mod_config(MOD_LCTL | MOD_LSFT));
+                register_code(KC_J);
             } else {
-                if (user_config.mac_mode) {
-                    unregister_mods(mod_config(MOD_LALT | MOD_LGUI));
-                    unregister_code(KC_J);
-                } else {
-                    unregister_mods(mod_config(MOD_LCTL | MOD_LSFT));
-                    unregister_code(KC_J);
-                }
+                unregister_mods(mod_config(MOD_LCTL | MOD_LSFT));
+                unregister_code(KC_J);
             }
             return false;
 
@@ -338,95 +274,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 unregister_code(KC_GRV);
             }
             return false;
-
-        case KC_MAC:
-            if (record->event.pressed) {
-                user_config.mac_mode ^= 1;
-                eeconfig_update_user(user_config.raw);
-            }
-            return false;
-
-        case KC_MGUI:
-            if (record->event.pressed) {
-                if (user_config.mac_mode) {
-                    register_code(KC_LALT);
-                } else {
-                    register_code(KC_LGUI);
-                }
-            } else {
-                if (user_config.mac_mode) {
-                    unregister_code(KC_LALT);
-                } else {
-                    unregister_code(KC_LGUI);
-                }
-            }
-            return false;
-
-        case KC_MALT:
-            if (record->event.pressed) {
-                if (user_config.mac_mode) {
-                    register_code(KC_LGUI);
-                } else {
-                    register_code(KC_RCTL);
-                }
-            } else {
-                if (user_config.mac_mode) {
-                    unregister_code(KC_LGUI);
-                } else {
-                    unregister_code(KC_RCTL);
-                }
-            }
-            return false;
-
-        // Windows mode: rebind RCtrl+Tab to Alt+Tab
-        case KC_TAB:
-            if (user_config.mac_mode) {
-                break;
-            }
-            // detect RCtrl+Tab on Windows; rebind to Alt+Tab
-            if (record->event.pressed) {
-                if ((mod_state & MOD_BIT(KC_RCTL)) == MOD_BIT(KC_RCTL)) {
-                    del_mods(KC_RCTL);
-                    add_mods(MOD_LALT);
-                    register_code(KC_TAB);
-                    set_mods(mod_state);
-                    return false;
-                }
-            }
-
-        // Windows mode: rebind RCtrl+Arrow to Alt+Arrow
-        case KC_LEFT:
-        case KC_RIGHT:
-        case KC_UP:
-        case KC_DOWN:
-            if (user_config.mac_mode) {
-                break;
-            }
-            if (record->event.pressed) {
-                if ((mod_state & MOD_BIT(KC_RCTL)) == MOD_BIT(KC_RCTL)) {
-                    unregister_mods(KC_RCTL);
-                    register_mods(MOD_LALT);
-                    register_code(keycode);
-                    set_mods(mod_state);
-                    return false;
-                }
-            }
-
-        // Windows mode: rebind RCtrl+F4 to Alt+F4
-        case KC_F4:
-            if (user_config.mac_mode) {
-                break;
-            }
-            if (record->event.pressed) {
-                if ((mod_state & MOD_BIT(KC_RCTL)) == MOD_BIT(KC_RCTL)) {
-                    unregister_mods(KC_RCTL);
-                    register_mods(MOD_LALT);
-                    register_code(keycode);
-                    set_mods(mod_state);
-                    return false;
-                }
-            }
-
         default:
         break;
     }
