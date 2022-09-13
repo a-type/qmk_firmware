@@ -216,7 +216,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     // Send keystrokes to host keyboard, if connected (see readme)
     process_record_remote_kb(keycode, record);
 
-    print("key press\n");
     sync_leds();
 
     // Check if non-mod
